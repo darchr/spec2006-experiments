@@ -10,6 +10,9 @@ gem5
 # gem5 results
 results
 
+# gem5 configs
+gem5-configs/
+
 # packer binaries and the disk images
 disk-image/packer
 disk-image/spec2006/spec2006-image/spec2006
