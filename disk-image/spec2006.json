@@ -11,9 +11,9 @@
                 "debian-installer={{ user `locale` }} auto locale={{ user `locale` }} kbd-chooser/method=us ",
                 "file=/floppy/{{ user `preseed` }} ",
                 "fb=false debconf/frontend=noninteractive ",
-                "hostname={{ user `hostname` }} ",
+                "hostname={{ user `hostname` }} ",          
                 "/install/vmlinuz noapic ",
-                "initrd=/install/initrd.gz ",
+                "initrd=/install/initrd.gz ",  
                 "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
                 "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
                 "passwd/user-fullname={{ user `ssh_fullname` }} ",
@@ -24,7 +24,7 @@
             ],
             "cpus": "{{ user `vm_cpus`}}",
             "disk_size": "{{ user `image_size` }}",
-            "floppy_files":
+            "floppy_files": 
             [
                 "shared/{{ user `preseed` }}"
             ],
@@ -34,13 +34,13 @@
             "iso_checksum_type": "{{ user `iso_checksum_type` }}",
             "iso_urls": [ "{{ user `iso_url` }}" ],
             "memory": "{{ user `vm_memory`}}",
-            "output_directory": "boot-exit/{{ user `image_name` }}-image",
-            "qemuargs":
+            "output_directory": "spec2006/{{ user `image_name` }}-image",
+            "qemuargs": 
             [
                 [ "-cpu", "host" ],
                 [ "-display", "none" ]
             ],
-            "qemu_binary": "/usr/bin/qemu-system-x86_64",
+            "qemu_binary":"/usr/bin/qemu-system-x86_64",
             "shutdown_command": "echo '{{ user `ssh_password` }}'|sudo -S shutdown -P now",
             "ssh_password": "{{ user `ssh_password` }}",
             "ssh_username": "{{ user `ssh_username` }}",
@@ -48,13 +48,8 @@
             "vm_name": "{{ user `image_name` }}"
         }
     ],
-    "provisioners":
+    "provisioners": 
     [
-        {
-            "type": "file",
-            "source": "boot-exit/exit.sh",
-            "destination": "/home/gem5/"
-        },
         {
             "type": "file",
             "source": "../gem5/util/m5/m5",
@@ -66,19 +61,30 @@
             "destination": "/home/gem5/"
         },
         {
+            "type": "file",
+            "source": "spec2006/runscript.sh",
+            "destination": "/home/gem5/"
+        },
+        {
+            "type": "file",
+            "source": "spec2006/CPU2006v1.0.1.iso",
+            "destination": "/home/gem5/"
+        },
+        {
             "type": "shell",
             "execute_command": "echo '{{ user `ssh_password` }}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
-            "scripts":
+            "scripts": 
             [
-                "boot-exit/post-installation.sh"
+                "spec2006/post-installation.sh",
+                "spec2006/install-spec2006.sh"
             ]
         }
     ],
-    "variables":
+    "variables": 
     {
         "boot_command_prefix": "<enter><wait><f6><esc><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
         "desktop": "false",
-        "image_size": "2048",
+        "image_size": "12000",
         "headless": "true",
         "iso_checksum": "34416ff83179728d54583bf3f18d42d2",
         "iso_checksum_type": "md5",
@@ -92,7 +98,8 @@
         "ssh_username": "gem5",
         "vm_cpus": "16",
         "vm_memory": "8192",
-        "image_name": "boot-exit"
+        "image_name": "spec2006"
   }
 
 }
+
