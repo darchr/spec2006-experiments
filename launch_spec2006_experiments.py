@@ -118,19 +118,26 @@ run_script_repo = Artifact.registerArtifact(
 
 
 if __name__ == "__main__":
-    cpus = ['kvm', 'atomic', 'o3', 'timing']
-    benchmark_sizes = {'kvm':    ['test', 'ref'],
-                       'atomic': ['test'],
-                       'o3':     ['test'],
-                       'timing': ['test']
+    #cpus = ['kvm', 'atomic', 'o3', 'timing']
+    cpus = ['kvm']
+    # benchmark_sizes = {'kvm':    ['test', 'ref'],
+    #                    'atomic': ['test'],
+    #                    'timing': ['test'],
+    #                    'o3':     ['test']
+
+    #                   }
+    benchmark_sizes = {'kvm':    ['test']
                       }
-    benchmarks = ['401.bzip2','403.gcc','410.bwaves','416.gamess','429.mcf',
-                  '433.milc','434.zeusmp','435.gromacs','436.cactusADM',
-                  '437.leslie3d','444.namd','445.gobmk','453.povray',
-                  '454.calculix','456.hmmer','458.sjeng','459.GemsFDTD',
-                  '462.libquantum','464.h264ref','465.tonto','470.lbm',
-                  '471.omnetpp','473.astar','481.wrf','482.sphinx3',
-                  '998.specrand','999.specrand']
+                      
+    # benchmarks = ['401.bzip2','403.gcc','410.bwaves','416.gamess','429.mcf',
+    #               '433.milc','434.zeusmp','435.gromacs','436.cactusADM',
+    #               '437.leslie3d','444.namd','445.gobmk','453.povray',
+    #               '454.calculix','456.hmmer','458.sjeng','459.GemsFDTD',
+    #               '462.libquantum','464.h264ref','465.tonto','470.lbm',
+    #               '471.omnetpp','473.astar','481.wrf','482.sphinx3',
+    #               '998.specrand','999.specrand']
+
+    benchmarks = ['401.bzip2']
     # unavailable benchmarks: 400.perlbench,447.dealII,450.soplex,483.xalancbmk
 
     for cpu in cpus:
