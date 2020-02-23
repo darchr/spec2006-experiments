@@ -12,9 +12,9 @@ results
 
 # packer binaries and the disk images
 disk-image/packer
-disk-image/packer_*_linux_amd64.zip
-disk-image/boot-exit/boot-exit-image/boot-exit
+disk-image/spec2006/spec2006-image/spec2006
 disk-image/packer_cache
+disk-image/spec2006/CPU2006v1.0.1.iso
 
 # Linux repos
 linux-stable/
