@@ -5,6 +5,7 @@ from uuid import UUID
 from gem5art.artifact import Artifact
 from gem5art.run import gem5Run
 from gem5art.tasks.tasks import run_gem5_instance
+import multiprocessing as mp
 
 experiments_repo = Artifact.registerArtifact(
     command = '',
@@ -116,6 +117,10 @@ run_script_repo = Artifact.registerArtifact(
     documentation = 'gem5 run scripts made specifically for SPEC benchmarks'
 )
 
+def worker(run):
+    run.run()
+    json = run.dumpsJson()
+    print(json)
 
 if __name__ == "__main__":
     #cpus = ['kvm', 'atomic', 'o3', 'timing']
@@ -140,7 +145,7 @@ if __name__ == "__main__":
     benchmarks = ['401.bzip2']
     # unavailable benchmarks: 400.perlbench,447.dealII,450.soplex,483.xalancbmk
 
-jobs = []
+    jobs = []
 
     for cpu in cpus:
         for size in benchmark_sizes[cpu]:
