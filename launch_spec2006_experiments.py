@@ -19,10 +19,8 @@ gem5_repo = Artifact.registerArtifact(
     command = '''
         git clone https://gem5.googlesource.com/public/gem5;
         cd gem5;
-        git remote add darchr https://github.com/darchr/gem5;
-        git fetch darchr;
-        git cherry-pick 6450aaa7ca9e3040fb9eecf69c51a01884ac370c;
-        git cherry-pick 3403665994b55f664f4edfc9074650aaa7ddcd2c;
+        git checkout release-staging-v19.0.0.0
+        git fetch "https://gem5.googlesource.com/public/gem5" refs/changes/64/25664/3 && git cherry-pick FETCH_HEAD;
     ''',
     typ = 'git repo',
     name = 'gem5',
@@ -39,7 +37,7 @@ gem5_binary = Artifact.registerArtifact(
     cwd = 'gem5/',
     path =  'gem5/build/X86/gem5.opt',
     inputs = [gem5_repo,],
-    documentation = 'compiled gem5 binary right after downloading the source code, this has two cherry picked changes to fix m5 readfile in KVM'
+    documentation = 'compiled gem5-19 binary right after downloading the source code, cherry picked change related to m5 readfile'
 )
 
 m5_binary = Artifact.registerArtifact(
