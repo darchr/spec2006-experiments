@@ -140,6 +140,8 @@ if __name__ == "__main__":
     benchmarks = ['401.bzip2']
     # unavailable benchmarks: 400.perlbench,447.dealII,450.soplex,483.xalancbmk
 
+jobs = []
+
     for cpu in cpus:
         for size in benchmark_sizes[cpu]:
             for benchmark in benchmarks:
@@ -158,4 +160,7 @@ if __name__ == "__main__":
                     cpu, benchmark, size, # params
                     timeout = 5*24*60*60 # 5 days
                 )
-                run_gem5_instance.apply_async((run,))
+                jobs.append(run)
+
+    with mp.Pool(mp.cpu_count() // 2) as pool:
+         pool.map(worker, jobs)
