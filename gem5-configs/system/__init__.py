@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016 Jason Lowe-Power
+# Copyright (c) 2020 The Regents of the University of California.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,4 +27,5 @@
 #
 # Authors: Jason Lowe-Power
 
-from system import MySystem
+from .system import MySystem
+from .ruby_system import MyRubySystem
