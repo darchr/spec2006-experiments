@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018 The Regents of the University of California
+# Copyright (c) 2020 The Regents of the University of California
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,13 +30,12 @@
 import m5
 from m5.objects import *
 from m5.util import convert
-from fs_tools import *
-from caches import *
+from .fs_tools import *
+from .caches import *
 
 
-class MySystem(LinuxX86System):
+class MySystem(System):
 
-    
     def __init__(self, kernel, disk, num_cpus, TimingCPUModel, no_kvm=False):
         super(MySystem, self).__init__()
         self._no_kvm = no_kvm
@@ -61,24 +60,22 @@ class MySystem(LinuxX86System):
         self.membus.default = Self.badaddr_responder.pio
 
         # Set up the system port for functional access from the simulator
-        self.system_port = self.membus.slave
+        self.system_port = self.membus.cpu_side_ports
 
         self.initFS(self.membus, num_cpus)
 
-        
         # Replace these paths with the path to your disk images.
         # The first disk is the root disk. The second could be used for swap
         # or anything else.
-        
         self.setDiskImages(disk, disk)
-        
+
         # Change this path to point to the kernel you want to use
-        self.kernel = kernel
+        self.workload.object_file = kernel
         # Options specified on the kernel command line
         boot_options = ['earlyprintk=ttyS0', 'console=ttyS0', 'lpj=7999923',
                          'root=/dev/hda1']
 
-        self.boot_osflags = ' '.join(boot_options)
+        self.workload.command_line = ' '.join(boot_options)
 
         # Create the CPUs for our system.
         self.createCPU(num_cpus, TimingCPUModel)
@@ -105,35 +102,39 @@ class MySystem(LinuxX86System):
     def totalInsts(self):
         return sum([cpu.totalInsts() for cpu in self.cpu])
 
+    def createCPUThreads(self, cpu):
+        for c in cpu:
+            c.createThreads()
+
     def createCPU(self, num_cpus, TimingCPUModel):
         if self._no_kvm:
             self.cpu = [AtomicSimpleCPU(cpu_id = i, switched_out = False)
                               for i in range(num_cpus)]
-            map(lambda c: c.createThreads(), self.cpu)
+            self.createCPUThreads(self.cpu)
             self.mem_mode = 'timing'
 
         else:
             # Note KVM needs a VM and atomic_noncaching
             self.cpu = [X86KvmCPU(cpu_id = i)
                         for i in range(num_cpus)]
-            map(lambda c: c.createThreads(), self.cpu)
+            self.createCPUThreads(self.cpu)
             self.kvm_vm = KvmVM()
             self.mem_mode = 'atomic_noncaching'
 
             self.atomicCpu = [AtomicSimpleCPU(cpu_id = i,
                                               switched_out = True)
                               for i in range(num_cpus)]
-            map(lambda c: c.createThreads(), self.atomicCpu)
+            self.createCPUThreads(self.atomicCpu)
 
         self.detailed_cpu = [TimingCPUModel(cpu_id = i,
                                      switched_out = True)
                    for i in range(num_cpus)]
-                   
-        map(lambda c: c.createThreads(), self.detailed_cpu)
+
+        self.createCPUThreads(self.detailed_cpu)
 
     def switchCpus(self, old, new):
         assert(new[0].switchedOut())
-        m5.switchCpus(self, zip(old, new))
+        m5.switchCpus(self, list(zip(old, new)))
 
     def setDiskImages(self, img_path_1, img_path_2):
         disk0 = CowDisk(img_path_1)
@@ -185,9 +186,9 @@ class MySystem(LinuxX86System):
             # For x86 only, connect interrupts to the memory
             # Note: these are directly connected to the memory bus and
             #       not cached
-            cpu.interrupts[0].pio = self.membus.master
-            cpu.interrupts[0].int_master = self.membus.slave
-            cpu.interrupts[0].int_slave = self.membus.master
+            cpu.interrupts[0].pio = self.membus.mem_side_ports
+            cpu.interrupts[0].int_requestor = self.membus.cpu_side_ports
+            cpu.interrupts[0].int_responder = self.membus.mem_side_ports
 
     # Memory latency: Using the smaller number from [3]: 96ns
     def createMemoryControllersDDR4(self):
@@ -197,16 +198,13 @@ class MySystem(LinuxX86System):
         kernel_controller = self._createKernelMemoryController(cls)
 
         ranges = self._getInterleaveRanges(self.mem_ranges[-1], num, 7, 20)
-
         self.mem_cntrls = [
-            cls(range = ranges[i],
-                port = self.membus.master)
+            MemCtrl(dram = cls(range = ranges[i]), port = self.membus.mem_side_ports)
             for i in range(num)
         ] + [kernel_controller]
 
     def _createKernelMemoryController(self, cls):
-        return cls(range = self.mem_ranges[0],
-                   port = self.membus.master)
+        return MemCtrl(dram = cls(range = self.mem_ranges[0]), port = self.membus.mem_side_ports)
 
     def _getInterleaveRanges(self, rng, num, intlv_low_bit, xor_low_bit):
         from math import log
@@ -229,18 +227,18 @@ class MySystem(LinuxX86System):
 
     def initFS(self, membus, cpus):
         self.pc = Pc()
-
+        self.workload = X86FsLinux()
         # Constants similar to x86_traits.hh
         IO_address_space_base = 0x8000000000000000
         pci_config_address_space_base = 0xc000000000000000
         interrupts_address_space_base = 0xa000000000000000
-        APIC_range_size = 1 << 12;
+        APIC_range_size = 1 << 12
 
         # North Bridge
         self.iobus = IOXBar()
         self.bridge = Bridge(delay='50ns')
-        self.bridge.master = self.iobus.slave
-        self.bridge.slave = membus.master
+        self.bridge.mem_side_port = self.iobus.cpu_side_ports
+        self.bridge.cpu_side_port = membus.mem_side_ports
         # Allow the bridge to pass through:
         #  1) kernel configured PCI device memory map address: address range
         #  [0xC0000000, 0xFFFF0000). (The upper 64kB are reserved for m5ops.)
@@ -260,8 +258,8 @@ class MySystem(LinuxX86System):
         # Create a bridge from the IO bus to the memory bus to allow access
         # to the local APIC (two pages)
         self.apicbridge = Bridge(delay='50ns')
-        self.apicbridge.slave = self.iobus.master
-        self.apicbridge.master = membus.slave
+        self.apicbridge.cpu_side_port = self.iobus.mem_side_ports
+        self.apicbridge.mem_side_port = membus.cpu_side_ports
         self.apicbridge.ranges = [AddrRange(interrupts_address_space_base,
                                             interrupts_address_space_base +
                                             cpus * APIC_range_size
@@ -280,15 +278,15 @@ class MySystem(LinuxX86System):
                             size = '1kB',
                             tgts_per_mshr = 12,
                             addr_ranges = self.mem_ranges)
-        self.iocache.cpu_side = self.iobus.master
-        self.iocache.mem_side = self.membus.slave
+        self.iocache.cpu_side = self.iobus.mem_side_ports
+        self.iocache.mem_side = self.membus.cpu_side_ports
 
         self.intrctrl = IntrControl()
 
         ###############################################
 
         # Add in a Bios information structure.
-        self.smbios_table.structures = [X86SMBiosBiosInformation()]
+        self.workload.smbios_table.structures = [X86SMBiosBiosInformation()]
 
         # Set up the Intel MP table
         base_entries = []
@@ -346,8 +344,8 @@ class MySystem(LinuxX86System):
         assignISAInt(1, 1)
         for i in range(3, 15):
             assignISAInt(i, i)
-        self.intel_mp_table.base_entries = base_entries
-        self.intel_mp_table.ext_entries = ext_entries
+        self.workload.intel_mp_table.base_entries = base_entries
+        self.workload.intel_mp_table.ext_entries = ext_entries
 
         entries = \
            [
@@ -375,6 +373,4 @@ class MySystem(LinuxX86System):
             size='%dB' % (self.mem_ranges[-1].size()),
             range_type=1))
 
-        self.e820_table.entries = entries
-        
-
+        self.workload.e820_table.entries = entries
